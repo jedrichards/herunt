@@ -20,10 +20,12 @@ This plugin requires Grunt `~0.4.1`.
 
 Install the plugin alongside the rest of your Grunt build process files:
 
-    $ npm install grunt-contrib-requirejs --save-dev
+```shell
+$ npm install grunt-contrib-requirejs --save-dev
+```
 
 And then load it into your Gruntfile.js
 
-    ```js
-    grunt.loadNpmTasks('grunt-contrib-requirejs');
-    ```
+```javascript
+grunt.loadNpmTasks('grunt-contrib-requirejs');
+```
