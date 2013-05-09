@@ -14,13 +14,13 @@ module.exports = function (grunt) {
         clean: ["tmp"],
         herunt: {
             new: {
-                src: "test/fixtures/test-app",
-                dest: "tmp",
+                srcDir: "test/fixtures/test-app",
+                appDir: "tmp",
                 newAppRegion: "eu"
             },
             existing: {
-                src: "test/fixtures/test-app",
-                dest: "tmp",
+                srcDir: "test/fixtures/test-app",
+                appDir: "tmp",
                 newAppRegion: "eu"
             }
         },

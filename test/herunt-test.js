@@ -25,6 +25,10 @@ module.exports = {
         });
     },
     test1: function (test) {
+        // Test tmp is a git repo root?
+        // Test tmp contains a Heroku app?
+        // Test there are two releases?
+        // Test the Herunt functions to get app name etc work?
         test.equals(this.foo,"bar");
         test.done();
     }
