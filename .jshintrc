@@ -1,0 +1,14 @@
+{
+    "camelcase": true,
+    "eqeqeq": true,
+    "immed": true,
+    "newcap": true,
+    "noarg": true,
+    "quotmark": "double",
+    "sub": true,
+    "undef": true,
+    "trailing": true,
+    "eqnull": true,
+    "node": true,
+    "es5": true
+}

@@ -1,0 +1,38 @@
+{
+  "name": "herunt",
+  "version": "0.0.1",
+  "description": "A Grunt plugin for deploying Node.JS apps to Heroku",
+  "main": "Gruntfile.js",
+  "peerDependencies": {
+    "grunt": "~0.4.1"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jedrichards/herunt.git"
+  },
+  "keywords": [
+    "grunt",
+    "plugin",
+    "grunt",
+    "gruntplugin",
+    "deployment",
+    "automation",
+    "heroku"
+  ],
+  "author": {
+    "name": "Jed Richards",
+    "email": "jed@seisaku.co.uk"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-jshint": "~0.4.3",
+    "grunt-contrib-nodeunit": "~0.1.2",
+    "async": "~0.2.8",
+    "semver": "~1.1.4",
+    "grunt-contrib-clean": "~0.4.1"
+  }
+}
