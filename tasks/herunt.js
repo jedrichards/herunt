@@ -15,8 +15,9 @@ module.exports = function (grunt) {
 
         var srcDir = path.resolve(this.data.srcDir);
         var appDir = path.resolve(this.data.appDir);
-        var newAppRegion = this.data.newAppRegion;
+        var region = this.data.region;
         var exclude = this.data.exclude||[];
+        var appConfig = this.data.appConfig;
 
         srcDir = srcDir.charAt(srcDir.length-1) === "/" ? srcDir.slice(0,-1) : srcDir;
         appDir = appDir.charAt(appDir.length-1) === "/" ? appDir.slice(0,-1) : appDir;
@@ -24,7 +25,7 @@ module.exports = function (grunt) {
         grunt.log.writelns("srcDir "+srcDir.cyan);
         grunt.log.writelns("appDir "+appDir.cyan);
 
-        var initialTasks = [
+        var subTasks = [
             checkHerokuCLIPresent,
             checkHerokuCLIVersion,
             checkHerokuCLIAuth,
@@ -36,10 +37,11 @@ module.exports = function (grunt) {
             syncSrcToDest,
             touchDeploymentInfoFile,
             addAndCommit,
+            setAppConfig,
             push
         ];
 
-        async.series(initialTasks,function (err) {
+        async.series(subTasks,function (err) {
             if ( err ) {
                 grunt.log.error();
                 grunt.log.errorlns(err);
@@ -150,7 +152,7 @@ module.exports = function (grunt) {
                 if ( err ) {
                     grunt.log.write("No Heroku app found in appDir, created ");
                     var cmd = "heroku create";
-                    if ( newAppRegion ) cmd = cmd+" --region "+newAppRegion;
+                    if ( region ) cmd = cmd+" --region "+region;
                     exec(cmd,{cwd:appDir},function (err,stdout,stderr) {
                         if ( err ) {
                             cb("Unable to create the Heroku app. "+stderr);
@@ -240,6 +242,26 @@ module.exports = function (grunt) {
             });
         }
 
+        function setAppConfig (cb) {
+            if ( !appConfig ) {
+                cb();
+                return;
+            }
+            grunt.log.write("Setting app config env ");
+            var cmd = "heroku config:set";
+            _.each(appConfig,function (value,key) {
+                cmd += " "+key+"="+value;
+            });
+            exec(cmd,{cwd:appDir},function (err,stdout,stderr) {
+                if ( err ) {
+                    cb("Unable to set app config env. "+stderr);
+                } else {
+                    grunt.log.ok();
+                    cb();
+                }
+            });
+        }
+
         function push (cb) {
             grunt.log.writelns("Deploying to Heroku ...");
             var ps = spawn("git",["push","heroku","master"],{cwd:appDir});
@@ -253,7 +275,7 @@ module.exports = function (grunt) {
                 if ( code > 0 ) {
                     cb("\nError pushing to Heroku git repo.");
                 } else {
-                    grunt.log.write("\nDeployment completed ");
+                    grunt.log.write("\nHerunt deployment completed ");
                     grunt.log.ok();
                     cb();
                 }

@@ -16,12 +16,18 @@ module.exports = function (grunt) {
             new: {
                 srcDir: "test/fixtures/test-app",
                 appDir: "tmp",
-                newAppRegion: "eu"
+                region: "eu",
+                appConfig: {
+                    NODE_ENV: "production",
+                    DB_USER: "foo",
+                    DB_PASS: "bar",
+                    API_KEY: "baz"
+                }
             },
             existing: {
                 srcDir: "test/fixtures/test-app",
                 appDir: "tmp",
-                newAppRegion: "eu"
+                region: "eu"
             }
         },
         nodeunit: {
@@ -31,7 +37,7 @@ module.exports = function (grunt) {
         }
     });
 
-    grunt.loadTasks("task");
+    grunt.loadTasks("tasks");
 
     grunt.loadNpmTasks("grunt-contrib-jshint");
     grunt.loadNpmTasks("grunt-contrib-nodeunit");
