@@ -15,7 +15,13 @@ module.exports = function (grunt) {
         herunt: {
             new: {
                 src: "test/fixtures/test-app",
-                dest: "tmp"
+                dest: "tmp",
+                newAppRegion: "eu"
+            },
+            existing: {
+                src: "test/fixtures/test-app",
+                dest: "tmp",
+                newAppRegion: "eu"
             }
         },
         nodeunit: {
@@ -35,6 +41,7 @@ module.exports = function (grunt) {
         "jshint",
         "clean",
         "herunt",
-        "nodeunit"
+        "nodeunit",
+        "clean"
     ]);
 };

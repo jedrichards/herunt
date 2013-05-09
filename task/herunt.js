@@ -3,16 +3,23 @@ var exec = require("child_process").exec;
 var async = require("async");
 var path = require("path");
 var semver = require("semver");
+var rsync = require("rsyncwrapper").rsync;
+var _ = require("underscore");
+var S = require("string");
 
 module.exports = function (grunt) {
 
     grunt.registerMultiTask("herunt","Deploy to Heroku",function () {
 
-        //grunt.config.requires("src","dest");
-
         var done = this.async();
+
         var src = path.resolve(this.data.src);
         var dest = path.resolve(this.data.dest);
+        var newAppRegion = this.data.newAppRegion;
+        var exclude = this.data.exclude||[];
+
+        src = src.charAt(src.length-1) === "/" ? src.slice(0,-1) : src;
+        dest = dest.charAt(dest.length-1) === "/" ? dest.slice(0,-1) : dest;
 
         var initialTasks = [
             checkHerokuCLIPresent,
@@ -20,7 +27,13 @@ module.exports = function (grunt) {
             checkHerokuCLIAuth,
             checkSrc,
             checkDest,
-            checkDestGit
+            checkDestGit,
+            checkDestHeroku,
+            pull,
+            syncSrcToDest,
+            touchDeploymentInfoFile,
+            addAndCommit,
+            push
         ];
 
         async.series(initialTasks,function (err) {
@@ -33,84 +46,11 @@ module.exports = function (grunt) {
             }
         });
 
-
-
-        // var done = this.async();
-        // var options = grunt.config.get("herunt")[target];
-        // var src = path.resolve(options.src);
-        // var now = new Date().toString();
-        // var user = process.env.USER || "Anon";
-        // var infoString = "Deployed by "+user+" at "+now;
-
-        // grunt.log.writeln("Deploying Heroku app at "+src);
-
-        // var commands = [
-        //     {
-        //         description: "> Refreshing deployment-info",
-        //         type: "exec",
-        //         cmd: "touch ./deployment-info; echo \""+infoString+"\" > ./deployment-info"
-
-        //     },
-        //     {
-        //         description: "> Tidying up and committing to repo",
-        //         type: "exec",
-        //         cmd: "git add -A; git commit -m \"Heroku deployment.\""
-        //     },
-        //     {
-        //         description: "> Pushing to Heroku",
-        //         type: "spawn",
-        //         cmd: "git",
-        //         args: ["push","heroku","master"]
-        //     }
-        // ];
-
-        // var funcs = [];
-
-        // commands.forEach(function (command) {
-        //     funcs.push(function (cb) {
-        //         grunt.log.writeln(command.description.grey);
-        //         if ( command.type === "exec" ) {
-        //             exec(command.cmd,{cwd:src},function (err,stdout,stderr) {
-        //                 if ( err ) {
-        //                     grunt.log.write(stderr.toString());
-        //                     cb(err);
-        //                 } else {
-        //                     grunt.log.write(stdout.toString());
-        //                     cb();
-        //                 }
-        //             });
-        //         } else {
-        //             var process = spawn(command.cmd,command.args,{cwd:src});
-        //             process.stderr.on("data",function (data) {
-        //                 grunt.log.write(data.toString("utf8"));
-        //             });
-        //             process.stdout.on("data",function (data) {
-        //                 grunt.log.write(data.toString("utf8"));
-        //             });
-        //             process.on("exit",function (code) {
-        //                 if ( code > 0 ) {
-        //                     cb(true);
-        //                 } else {
-        //                     cb();
-        //                 }
-        //             });
-        //         }
-        //     });
-        // });
-
-        // async.series(funcs,function (err,res) {
-        //     if ( err ) {
-        //         done(false);
-        //     } else {
-        //         done(true);
-        //     }
-        // });
-
         function checkHerokuCLIPresent (cb) {
             grunt.log.write("Checking for the Heroku CLI tool ");
             exec("which heroku",function (err,stdout,stderr) {
                 if ( err ) {
-                    cb("Unable to invoke the Heroku CLI tool. Is it installed?");
+                    cb("Unable to invoke the Heroku CLI tool. Is it installed? "+stderr);
                 } else {
                     grunt.log.ok();
                     cb();
@@ -122,7 +62,7 @@ module.exports = function (grunt) {
             grunt.log.write("Checking Heroku CLI tool version ");
             exec("heroku --version",function (err,stdout,stderr) {
                 if ( err || !stdout || stdout === "" ) {
-                    cb("Unable to check the Heroku CLI tool version.");
+                    cb("Unable to check the Heroku CLI tool version. "+stderr);
                 } else {
                     var installedVersion = stdout.split(" ")[0].split("/")[1];
                     var minVersion = "2.39.2";
@@ -137,10 +77,10 @@ module.exports = function (grunt) {
         }
 
         function checkHerokuCLIAuth (cb) {
-            grunt.log.write("Checking Heroku CLI auth status ");
+            grunt.log.write("Checking Heroku CLI tool auth status ");
             exec("cat ~/.netrc",function (err,stdout,stderr) {
                 if ( err ) {
-                    cb("Can't read the ~/.netrc file. Unable to determine auth status.");
+                    cb("Can't read the ~/.netrc file. Unable to determine auth status. "+stderr);
                 } else {
                     if ( stdout.indexOf("code.heroku.com") > -1 ) {
                         grunt.log.ok();
@@ -177,20 +117,143 @@ module.exports = function (grunt) {
             var isDir = grunt.file.isDir(dest);
             if ( isDir ) {
                 grunt.log.write("Checking the dest folder ");
-                grunt.log.ok();
-                cb();
             } else {
                 grunt.log.write("Dest folder not present, creating ");
                 grunt.file.mkdir(dest);
-                grunt.log.ok();
-                cb();
             }
+            grunt.log.ok();
+            cb();
         }
 
         function checkDestGit (cb) {
-            grunt.log.write("Checking if the dest folder is a Git repo ");
-            exec("git rev-parse",{cwd:dest},function (err,stdout,stderr) {
-                console.log(err,stdout,stderr);
+            exec("git rev-parse --show-toplevel",{cwd:dest},function (err,stdout,stderr) {
+                if ( S(dest).trim().s===S(stdout).trim().s ) {
+                    grunt.log.write("Dest folder isn't a Git repo root, setting it up ");
+                    exec("git init; git add .; git commit -m \"Initial commit.\"",{cwd:dest},function (err,stdout,stderr) {
+                        grunt.log.ok();
+                        cb();
+                    });
+                } else {
+                    grunt.log.write("Dest folder Git check ");
+                    grunt.log.ok();
+                    cb();
+                }
+            });
+        }
+
+        function checkDestHeroku (cb) {
+            var appName;
+            exec("heroku info",{cwd:dest},function (err,stdout,stderr) {
+                if ( err ) {
+                    grunt.log.write("No Heroku app found in dest, created ");
+                    var cmd = "heroku create";
+                    if ( newAppRegion ) cmd = cmd+" --region "+newAppRegion;
+                    exec(cmd,{cwd:dest},function (err,stdout,stderr) {
+                        if ( err ) {
+                            cb("Unable to create the Heroku app. "+stderr);
+                        } else {
+                            var appName = stdout.split("Creating ")[1].split("... ")[0];
+                            grunt.log.write(appName.cyan+" ");
+                            grunt.log.ok();
+                            cb();
+                        }
+                    });
+                } else {
+                    stdout = stdout||"";
+                    var appName = stdout.split("\n")[0].split("=== ")[1]||"[unknown app]";
+                    grunt.log.write("Found Heroku app in dest "+appName.cyan+" ");
+                    grunt.log.ok();
+                    cb();
+                }
+            });
+        }
+
+        function pull (cb) {
+            grunt.log.write("Pulling latest app changes from Heroku, if any ");
+            exec("git branch -av",{cwd:dest},function (err,stdout,stderr) {
+                if ( err ) {
+                    cb("Unable to determine repo status. "+stderr);
+                } else {
+                    if ( stdout === "" ) {
+                        grunt.log.ok();
+                        cb();
+                    } else {
+                        exec("git pull heroku master",{cwd:dest},function (err,stdout,stderr) {
+                            if ( err ) {
+                                cb("Can't pull from Heroku. "+stderr);
+                            } else {
+                                grunt.log.ok();
+                                cb();
+                            }
+                        });
+                    }
+                }
+            });
+
+        }
+
+        function syncSrcToDest (cb) {
+            grunt.log.write("Syncing src files to dest ");
+            rsync({
+                src: src+"/",
+                dest: dest,
+                recursive: true,
+                exclude: _.union(exclude,[".DS_Store","node_modules",".git",".gitignore",".nodemonignore","npm-debug.log"]),
+                args: ["--delete"]
+            }, function (err,stdout,stderr,cmd) {
+                if ( err) {
+                    cb("Unable to sync src files to dest. "+stderr);
+                } else {
+                    grunt.log.ok();
+                    cb();
+                }
+            });
+        }
+
+        function touchDeploymentInfoFile (cb) {
+            var now = new Date().toString();
+            var user = process.env.USER || "Anon";
+            var infoString = "Deployed by "+user+" at "+now+" using Herunt.";
+            grunt.log.write("Touching deployment-info file to ensure a change in Git ");
+            exec("touch ./deployment-info; echo \""+infoString+"\" > ./deployment-info",{cwd:dest},function (err,stdout,stderr) {
+                if ( err ) {
+                    cb("Unable to make the deployment string file. "+stderr);
+                } else {
+                    grunt.log.ok();
+                    cb();
+                }
+            });
+        }
+
+        function addAndCommit (cb) {
+            grunt.log.write("Adding and committing new files to the repo ");
+            exec("git add -A; git commit -m \"Herunt deployment.\"",{cwd:dest},function (err,stdout,stderr) {
+                if ( err ) {
+                    cb("Unable to add and commit new files in dest. "+stderr);
+                } else {
+                    grunt.log.ok();
+                    cb();
+                }
+            });
+        }
+
+        function push (cb) {
+            grunt.log.writelns("Deploying to Heroku ...");
+            var ps = spawn("git",["push","heroku","master"],{cwd:dest});
+            ps.stderr.on("data",function (data) {
+                grunt.log.write(data.toString("utf8"));
+            });
+            ps.stdout.on("data",function (data) {
+                grunt.log.write(data.toString("utf8"));
+            });
+            ps.on("exit",function (code) {
+                if ( code > 0 ) {
+                    cb("\nError pushing to Heroku git repo.");
+                } else {
+                    grunt.log.write("\nDeployment completed ");
+                    grunt.log.ok();
+                    cb();
+                }
             });
         }
     });

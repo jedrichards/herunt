@@ -1,7 +1,7 @@
 {
   "name": "herunt-test-app",
   "version": "0.0.1",
-  "description": "Herunt test app",
+  "description": "Herunt Test App",
   "main": "index.js",
   "private": true,
   "engines": {
