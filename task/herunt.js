@@ -21,6 +21,9 @@ module.exports = function (grunt) {
         src = src.charAt(src.length-1) === "/" ? src.slice(0,-1) : src;
         dest = dest.charAt(dest.length-1) === "/" ? dest.slice(0,-1) : dest;
 
+        grunt.log.writelns("Using src folder "+src.cyan);
+        grunt.log.writelns("Deploying from app folder "+dest.cyan);
+
         var initialTasks = [
             checkHerokuCLIPresent,
             checkHerokuCLIVersion,
@@ -127,7 +130,7 @@ module.exports = function (grunt) {
 
         function checkDestGit (cb) {
             exec("git rev-parse --show-toplevel",{cwd:dest},function (err,stdout,stderr) {
-                if ( S(dest).trim().s===S(stdout).trim().s ) {
+                if ( S(dest).trim().s!==S(stdout).trim().s ) {
                     grunt.log.write("Dest folder isn't a Git repo root, setting it up ");
                     exec("git init; git add .; git commit -m \"Initial commit.\"",{cwd:dest},function (err,stdout,stderr) {
                         grunt.log.ok();
