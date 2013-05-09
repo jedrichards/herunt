@@ -1,7 +1,7 @@
 {
   "name": "herunt",
   "version": "0.1.0",
-  "description": "A Grunt plugin for deploying Node.JS apps to Heroku",
+  "description": "A Grunt multitask plugin for deploying Node.JS apps to Heroku",
   "main": "Gruntfile.js",
   "peerDependencies": {
     "grunt": "~0.4.1"
