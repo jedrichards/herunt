@@ -1,5 +1,7 @@
 ### Herunt: A Grunt multitask plugin for deploying Node.JS apps to Heroku
 
+![David. Watching Your Dependencies.](https://david-dm.org/jedrichards/herunt.png)
+
 ***
 
 You can use Herunt to automate both setting up and deploying a Node.JS app to Heroku from your Grunt-based build process.
