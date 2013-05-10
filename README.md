@@ -34,7 +34,7 @@ grunt.loadNpmTasks("herunt");
 
 This plugin requires Grunt `~0.4.1`.
 
-The (Heroku Toolbelt)[https://toolbelt.herokuapp.com] CLI tool needs to be installed, available in your `PATH` and authenticated. Version `>=2.39.2` is required.
+The [Heroku Toolbelt](https://toolbelt.herokuapp.com) CLI tool needs to be installed, available in your `PATH` and authenticated. Version `>=2.39.2` is required.
 
 You need a modern version of Git `>=1.8` installed and available in your `PATH` too.
 
@@ -62,7 +62,7 @@ grunt.initConfig({
 });
 ```javascript
 
-`app` This is the path (relative to the `Gruntfile.js`) that contains your derived app ready to be deployed to Heroku. This isn't the Heroku-enabled Git repo. By the time Herunt gets to looking at this folder it should have been populated by your build process with the compiled, compressed and concatendated files that comprise your production-ready app.
+Bleh `app` This is the path (relative to the `Gruntfile.js`) that contains your derived app ready to be deployed to Heroku. This isn't the Heroku-enabled Git repo. By the time Herunt gets to looking at this folder it should have been populated by your build process with the compiled, compressed and concatendated files that comprise your production-ready app.
 
 `herokuRepo` This is the desired location of the Heroku Git repo, i.e. the repo which simply stores and pushes the derived app. If this folder doesn't exist Herunt will create it and set up the repo automatically. If you intend to keep this repo inside the work tree of your main project repo you must add its containing folder to `.gitignore` or else bad things will happen.
 
