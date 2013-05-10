@@ -11,23 +11,32 @@ module.exports = function (grunt) {
                 jshintrc: ".jshintrc"
             }
         },
-        clean: ["tmp"],
+        clean: ["tmpUnnamed","tmpNamed"],
         herunt: {
-            new: {
-                srcDir: "test/fixtures/test-app",
-                appDir: "tmp",
+            newNamed: {
+                app: "test/fixtures/test-app",
+                herokuRepo: "tmpNamed",
+                name: "herunt-test-app"
+            },
+            existingNamed: {
+                app: "test/fixtures/test-app",
+                herokuRepo: "tmpNamed",
+                name: "herunt-test-app"
+            },
+            newUnnamed: {
+                app: "test/fixtures/test-app",
+                herokuRepo: "tmpUnnamed",
                 region: "eu",
-                appConfig: {
+                config: {
                     NODE_ENV: "production",
                     DB_USER: "foo",
                     DB_PASS: "bar",
                     API_KEY: "baz"
                 }
             },
-            existing: {
-                srcDir: "test/fixtures/test-app",
-                appDir: "tmp",
-                region: "eu"
+            existingUnnamed: {
+                app: "test/fixtures/test-app",
+                herokuRepo: "tmpUnnamed"
             }
         },
         nodeunit: {
