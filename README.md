@@ -58,7 +58,7 @@ grunt.initConfig({
                 DB_PASS: "bar",
                 API_KEY: "baz"
             },
-            exclude: ["scss,"*.foo"]
+            exclude: ["scss","*.foo"]
         }
     }
 });
