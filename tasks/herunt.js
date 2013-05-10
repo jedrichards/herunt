@@ -13,28 +13,29 @@ module.exports = function (grunt) {
 
         var done = this.async();
 
-        var srcDir = path.resolve(this.data.srcDir);
-        var appDir = path.resolve(this.data.appDir);
+        var app = path.resolve(this.data.app);
+        var herokuRepo = path.resolve(this.data.herokuRepo);
         var region = this.data.region;
         var exclude = this.data.exclude||[];
         var appConfig = this.data.appConfig;
+        var name = this.data.name;
 
-        srcDir = srcDir.charAt(srcDir.length-1) === "/" ? srcDir.slice(0,-1) : srcDir;
-        appDir = appDir.charAt(appDir.length-1) === "/" ? appDir.slice(0,-1) : appDir;
+        app = app.charAt(app.length-1) === "/" ? app.slice(0,-1) : app;
+        herokuRepo = herokuRepo.charAt(herokuRepo.length-1) === "/" ? herokuRepo.slice(0,-1) : herokuRepo;
 
-        grunt.log.writelns("srcDir "+srcDir.cyan);
-        grunt.log.writelns("appDir "+appDir.cyan);
+        grunt.log.writelns("app "+app.cyan);
+        grunt.log.writelns("herokuRepo "+herokuRepo.cyan);
 
         var subTasks = [
             checkHerokuCLIPresent,
             checkHerokuCLIVersion,
             checkHerokuCLIAuth,
-            checkSrc,
-            checkDest,
-            checkDestGit,
-            checkDestHeroku,
+            checkApp,
+            checkHerokuRepo,
+            checkHerokuRepoGit,
+            checkHerokuRepoHeroku,
             pull,
-            syncSrcToDest,
+            syncAppToHerokuRepo,
             touchDeploymentInfoFile,
             addAndCommit,
             setAppConfig,
@@ -75,7 +76,7 @@ module.exports = function (grunt) {
                         grunt.log.ok();
                         cb();
                     } else {
-                        cb("The installed Heroku CLI tool is out of date. Version "+minVersion+" and above is required.");
+                        cb("The installed Heroku CLI tool is out of date. Versions "+minVersion+" and above are required.");
                     }
                 }
             });
@@ -91,74 +92,90 @@ module.exports = function (grunt) {
                         grunt.log.ok();
                         cb();
                     } else {
-                        cb("You don't appear to be authenticated. Try running 'heroku login'.");
+                        cb("You don't appear to be authenticated. Try running 'heroku login'?");
                     }
                 }
             });
         }
 
-        function checkSrc (cb) {
-            grunt.log.write("Checking the srcDir folder ");
-            var isDir = grunt.file.isDir(srcDir);
+        function checkApp (cb) {
+            grunt.log.write("Checking the app folder ");
+            var isDir = grunt.file.isDir(app);
             if ( !isDir ) {
-                cb("The srcDir folder doesn't seem to be pointing at a valid location.");
+                cb("The app folder doesn't seem to be pointing at a valid location.");
                 return;
             }
-            var hasPackageJSON = grunt.file.exists(srcDir+"/package.json");
+            var hasPackageJSON = grunt.file.exists(app+"/package.json");
             if ( !hasPackageJSON ) {
-                cb("The srcDir folder doesn't contain a package.json, is it a Node app?");
+                cb("The app folder doesn't contain a package.json, is it a Node app?");
                 return;
             }
-            var hasProcfile = grunt.file.exists(srcDir+"/Procfile");
+            var hasProcfile = grunt.file.exists(app+"/Procfile");
             if ( !hasProcfile ) {
-                cb("The srcDir folder doesn't contain a Procile, is it ready for Heroku deployment?");
+                cb("The app folder doesn't contain a Procfile, is it ready for Heroku deployment?");
                 return;
             }
             grunt.log.ok();
             cb();
         }
 
-        function checkDest (cb) {
-            var isDir = grunt.file.isDir(appDir);
+        function checkHerokuRepo (cb) {
+            var isDir = grunt.file.isDir(herokuRepo);
             if ( isDir ) {
-                grunt.log.write("Checking the appDir folder ");
+                grunt.log.write("Checking the herokuRepo folder ");
             } else {
-                grunt.log.write("Dest folder not present, creating ");
-                grunt.file.mkdir(appDir);
+                grunt.log.write("herokuRepo folder not present, creating ");
+                grunt.file.mkdir(herokuRepo);
             }
             grunt.log.ok();
             cb();
         }
 
-        function checkDestGit (cb) {
-            exec("git rev-parse --show-toplevel",{cwd:appDir},function (err,stdout,stderr) {
-                if ( S(appDir).trim().s!==S(stdout).trim().s ) {
-                    grunt.log.write("Dest folder isn't a Git repo root, setting it up ");
-                    exec("git init; git add .; git commit -m \"Initial commit.\"",{cwd:appDir},function (err,stdout,stderr) {
-                        grunt.log.ok();
-                        cb();
-                    });
+        function checkHerokuRepoGit (cb) {
+            exec("git rev-parse --show-toplevel",{cwd:herokuRepo},function (err,stdout,stderr) {
+                if ( S(herokuRepo).trim().s!==S(stdout).trim().s ) {
+                    if ( name ) {
+                        grunt.log.write("herokuRepo folder isn't a Git repo root, cloning "+name.cyan+" ");
+                        exec("git clone git@heroku.com:"+name+".git -o heroku .",{cwd:herokuRepo},function (err,stdout,stderr) {
+                            if ( err ) {
+                                cb("Unable to init the repo. "+stderr);
+                            } else {
+                                grunt.log.ok();
+                                cb();
+                            }
+                        });
+                    } else {
+                        grunt.log.write("herokuRepo folder isn't a repo root, initialising ");
+                        exec("git init; git add .; git commit -m \"Herunt initial commit.\"",{cwd:herokuRepo},function (err,stdout,stderr) {
+                            if ( err ) {
+                                cb("Unable to init the repo. "+stderr);
+                            } else {
+                                grunt.log.ok();
+                                cb();
+                            }
+                        });
+                    }
                 } else {
-                    grunt.log.write("Dest folder Git check ");
+                    grunt.log.write("herokuRepo folder is a Git repo ");
                     grunt.log.ok();
                     cb();
                 }
             });
         }
 
-        function checkDestHeroku (cb) {
+        function checkHerokuRepoHeroku (cb) {
             var appName;
-            exec("heroku info",{cwd:appDir},function (err,stdout,stderr) {
+            exec("heroku info",{cwd:herokuRepo},function (err,stdout,stderr) {
                 if ( err ) {
-                    grunt.log.write("No Heroku app found in appDir, created ");
+                    grunt.log.write("No Heroku app found in herokuRepo, created ");
                     var cmd = "heroku create";
                     if ( region ) cmd = cmd+" --region "+region;
-                    exec(cmd,{cwd:appDir},function (err,stdout,stderr) {
+                    exec(cmd,{cwd:herokuRepo},function (err,stdout,stderr) {
                         if ( err ) {
                             cb("Unable to create the Heroku app. "+stderr);
                         } else {
                             var appName = stdout.split("Creating ")[1].split("... ")[0];
-                            grunt.log.write(appName.cyan+" ");
+                            grunt.log.write(appName.cyan+" app ");
                             grunt.log.ok();
                             cb();
                         }
@@ -166,7 +183,7 @@ module.exports = function (grunt) {
                 } else {
                     stdout = stdout||"";
                     var appName = stdout.split("\n")[0].split("=== ")[1]||"[unknown app]";
-                    grunt.log.write("Found Heroku app in appDir "+appName.cyan+" ");
+                    grunt.log.write("Found Heroku app in herokuRepo "+appName.cyan+" ");
                     grunt.log.ok();
                     cb();
                 }
@@ -175,7 +192,7 @@ module.exports = function (grunt) {
 
         function pull (cb) {
             grunt.log.write("Pulling latest app changes from Heroku, if any ");
-            exec("git branch -av",{cwd:appDir},function (err,stdout,stderr) {
+            exec("git branch -av",{cwd:herokuRepo},function (err,stdout,stderr) {
                 if ( err ) {
                     cb("Unable to determine repo status. "+stderr);
                 } else {
@@ -183,7 +200,7 @@ module.exports = function (grunt) {
                         grunt.log.ok();
                         cb();
                     } else {
-                        exec("git pull heroku master",{cwd:appDir},function (err,stdout,stderr) {
+                        exec("git pull heroku master",{cwd:herokuRepo},function (err,stdout,stderr) {
                             if ( err ) {
                                 cb("Can't pull from Heroku. "+stderr);
                             } else {
@@ -197,17 +214,17 @@ module.exports = function (grunt) {
 
         }
 
-        function syncSrcToDest (cb) {
-            grunt.log.write("Syncing srcDir files to appDir ");
+        function syncAppToHerokuRepo (cb) {
+            grunt.log.write("Syncing app files to herokuRepo ");
             rsync({
-                src: srcDir+"/",
-                dest: appDir,
+                src: app+"/",
+                dest: herokuRepo,
                 recursive: true,
                 exclude: _.union(exclude,[".DS_Store","node_modules",".git",".gitignore",".nodemonignore","npm-debug.log"]),
                 args: ["--delete"]
             }, function (err,stdout,stderr,cmd) {
                 if ( err) {
-                    cb("Unable to sync srcDir files to appDir. "+stderr);
+                    cb("Unable to sync app files to herokuRepo. "+stderr);
                 } else {
                     grunt.log.ok();
                     cb();
@@ -220,7 +237,7 @@ module.exports = function (grunt) {
             var user = process.env.USER || "Anon";
             var infoString = "Deployed by "+user+" at "+now+" using Herunt.";
             grunt.log.write("Touching deployment-info file to ensure a change in Git ");
-            exec("touch ./deployment-info; echo \""+infoString+"\" > ./deployment-info",{cwd:appDir},function (err,stdout,stderr) {
+            exec("touch ./deployment-info; echo \""+infoString+"\" > ./deployment-info",{cwd:herokuRepo},function (err,stdout,stderr) {
                 if ( err ) {
                     cb("Unable to make the deployment string file. "+stderr);
                 } else {
@@ -232,9 +249,9 @@ module.exports = function (grunt) {
 
         function addAndCommit (cb) {
             grunt.log.write("Adding and committing new files to the repo ");
-            exec("git add -A; git commit -m \"Herunt deployment.\"",{cwd:appDir},function (err,stdout,stderr) {
+            exec("git add -A; git commit -m \"Herunt deployment.\"",{cwd:herokuRepo},function (err,stdout,stderr) {
                 if ( err ) {
-                    cb("Unable to add and commit new files in appDir. "+stderr);
+                    cb("Unable to add and commit new files in herokuRepo. "+stderr);
                 } else {
                     grunt.log.ok();
                     cb();
@@ -252,7 +269,7 @@ module.exports = function (grunt) {
             _.each(appConfig,function (value,key) {
                 cmd += " "+key+"="+value;
             });
-            exec(cmd,{cwd:appDir},function (err,stdout,stderr) {
+            exec(cmd,{cwd:herokuRepo},function (err,stdout,stderr) {
                 if ( err ) {
                     cb("Unable to set app config env. "+stderr);
                 } else {
@@ -264,7 +281,7 @@ module.exports = function (grunt) {
 
         function push (cb) {
             grunt.log.writelns("Deploying to Heroku ...");
-            var ps = spawn("git",["push","heroku","master"],{cwd:appDir});
+            var ps = spawn("git",["push","heroku","master"],{cwd:herokuRepo});
             ps.stderr.on("data",function (data) {
                 grunt.log.write(data.toString("utf8"));
             });
