@@ -40,6 +40,8 @@ Herunt has been tested on OSX only. It'll probably work on various flavours of *
 
 #### Configuration
 
+Example configuration for the `herunt` task, with a target called `deploy`:
+
 ```javascript
 grunt.initConfig({
     herunt: {
@@ -59,15 +61,20 @@ grunt.initConfig({
     }
 });
 ```
+Explanation of options:
 
 <code><b>app</b></code> This is the path (relative to the `Gruntfile.js`) that contains your derived app ready to be deployed to Heroku. This isn't the Heroku-enabled Git repo. By the time Herunt gets to looking at this folder it should have been populated by your build process with the compiled, compressed and concatendated files that comprise your production-ready app.
 
-`herokuRepo` This is the desired location of the Heroku Git repo, i.e. the repo which simply stores and pushes the derived app. If this folder doesn't exist Herunt will create it and set up the repo automatically. If you intend to keep this repo inside the work tree of your main project repo you must add its containing folder to `.gitignore` or else bad things will happen.
+<code><b>herokuRepo</b></code> This is the desired location of the Heroku Git repo, i.e. the repo which simply stores and pushes the derived app. If this folder doesn't exist Herunt will create it and set up the repo automatically. If you intend to keep this repo inside the work tree of your main project repo you must add its containing folder to `.gitignore` or else bad things will happen.
 
-`name` Optional. The name of the Heroku app. This field is optional since Herunt will create a new app on Heroku if you don't specify it. Either the named app, or the automatically created app will be picked up on subsequent runs.
+<code><b>name</b></code> Optional. The name of the Heroku app. This field is optional since Herunt will create a new app on Heroku if you don't specify it. Either the named app, or the automatically created app will be picked up on subsequent runs.
 
-`region` Optional. Defaults to US, but feel free to use the value `eu` to target the new Heroku Europe cluster.
+<code><b>region</b></code> Optional. Defaults to US, but feel free to use the value `eu` to target the new Heroku Europe cluster.
 
-`config` Optional. Hash of name/value pairs for any env vars you want to set on the Heroku app.
+<code><b>config</b></code> Optional. Hash of name/value pairs for any env vars you want to set on the Heroku app.
 
-`exclude` Optional. Array of exclude patterns to use when Herunt copies the contents of the `app` folder into the `herokuRepo`. Herunt automatically excludes the following `".DS_Store","node_modules",".git",".gitignore",".nodemonignore","npm-debug.log"`.
+<code><b>exclude</b></code> Optional. Array of exclude patterns to use when Herunt copies the contents of the `app` folder into the `herokuRepo`. Herunt automatically excludes the following:
+
+```
+".DS_Store","node_modules",".git",".gitignore",".nodemonignore","npm-debug.log"
+```
