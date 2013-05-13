@@ -67,7 +67,7 @@ Explanation of options:
 
 <code><b>app</b></code> This is the path (relative to the `Gruntfile.js`) that contains your derived app ready to be deployed to Heroku. This isn't the Heroku-enabled Git repo. By the time Herunt gets to looking at this folder it should have been populated by your build process with the compiled, compressed and concatendated files that comprise your production-ready app.
 
-<code><b>herokuRepo</b></code> This is the desired location of the Heroku Git repo, i.e. the repo which simply stores and pushes the derived app. If this folder doesn't exist Herunt will create it and set up the repo automatically. If you intend to keep this repo inside the work tree of your main project repo you must add its containing folder to `.gitignore` or else bad things will happen.
+<code><b>herokuRepo</b></code> This is the path (relative to the `Gruntfile.js`) that will contain the "Herokuized" Git repo, i.e. the repo which will store and push/deploy the derived app. If this folder doesn't exist Herunt will create it and set up the repo automatically. If you intend to keep this repo inside the work tree of your main project repo you must add its containing folder to `.gitignore` or else bad things will happen.
 
 <code><b>name</b></code> Optional. The name of the Heroku app. This field is optional since Herunt will create a new app on Heroku if you don't specify it. Either the named app, or the automatically created app will be picked up on subsequent runs.
 
