@@ -20,15 +20,11 @@ Herunt will automate:
 
 Install the plugin alongside the rest of your Grunt build process files:
 
-```shell
-$ npm install herunt --save-dev
-```
+    $ npm install herunt --save-dev
 
 And then reference it in your `Gruntfile.js`:
 
-```javascript
-grunt.loadNpmTasks("herunt");
-```
+    grunt.loadNpmTasks("herunt");
 
 #### Prerequisites
 
