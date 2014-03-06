@@ -76,3 +76,5 @@ Explanation of options:
 ```
 ".DS_Store","node_modules",".git",".gitignore",".nodemonignore","npm-debug.log"
 ```
+
+<code><b>includeModules</b></code> Optional. Array of strings that indicate the names Node.js modules that you would like to include in the "Herokurized" Git repository. This is especially useful for modules that locally linked into the project.
