@@ -16,6 +16,7 @@ module.exports = function (grunt) {
         var done = this.async();
 
         var app = path.resolve(this.data.app);
+        var herokuRepoLocal = this.data.herokuRepo;
         var herokuRepo = path.resolve(this.data.herokuRepo);
         var region = this.data.region;
         var exclude = this.data.exclude||[];
@@ -228,7 +229,7 @@ module.exports = function (grunt) {
                 ".gitignore",
                 ".nodemonignore",
                 "npm-debug.log",
-                herokuRepo
+                herokuRepoLocal
             ]);
             _.each(includeModules, function (module) {
                 var modulePath = "node_modules/" + module,
