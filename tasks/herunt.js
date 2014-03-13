@@ -231,12 +231,13 @@ module.exports = function (grunt) {
                 "npm-debug.log",
                 herokuRepoLocal
             ]);
+            // Add linked modules to the inclusion list
             _.each(includeModules, function (module) {
                 var modulePath = "node_modules/" + module,
-                    modulePathSub = modulePath + "/node_modules";
-                includeCompiled.push(modulePath);
-                excludeCompiled.push(modulePathSub);
+                    modulePathSub = modulePath + "/node_modules/*";
+                includeCompiled.push(modulePath, modulePathSub);
             });
+            // Run rsync between the application and repository
             rsync({
                 src: app+"/",
                 dest: herokuRepo,
