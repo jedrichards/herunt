@@ -16,11 +16,13 @@ module.exports = function (grunt) {
         var done = this.async();
 
         var app = path.resolve(this.data.app);
+        var herokuRepoLocal = this.data.herokuRepo;
         var herokuRepo = path.resolve(this.data.herokuRepo);
         var region = this.data.region;
         var exclude = this.data.exclude||[];
         var config = this.data.config;
         var name = this.data.name;
+        var includeModules = this.data.includeModules||[];
 
         app = app.charAt(app.length-1) === "/" ? app.slice(0,-1) : app;
         herokuRepo = herokuRepo.charAt(herokuRepo.length-1) === "/" ? herokuRepo.slice(0,-1) : herokuRepo;
@@ -219,12 +221,28 @@ module.exports = function (grunt) {
 
         function syncAppToHerokuRepo (cb) {
             grunt.log.write("Syncing app files to herokuRepo ");
+            var includeCompiled = [];
+            var excludeCompiled = _.union(exclude, [
+                ".DS_Store",
+                "/node_modules/*",
+                ".git",
+                ".gitignore",
+                ".nodemonignore",
+                "npm-debug.log",
+                herokuRepoLocal
+            ]);
+            // Add linked modules to the inclusion list
+            _.each(includeModules, function (module) {
+                includeCompiled.push("/node_modules/" + module);
+            });
+            // Run rsync between the application and repository
             rsync({
                 src: app+"/",
                 dest: herokuRepo,
                 recursive: true,
-                exclude: _.union(exclude,[".DS_Store","node_modules",".git",".gitignore",".nodemonignore","npm-debug.log"]),
-                args: ["--delete"]
+                exclude: excludeCompiled,
+                include: includeCompiled,
+                args: ["--delete", "--copy-links"]
             }, function (err,stdout,stderr,cmd) {
                 if ( err) {
                     cb("Unable to sync app files to herokuRepo. "+err+" "+stdout+" "+stderr);
