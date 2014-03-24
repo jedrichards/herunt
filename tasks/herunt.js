@@ -224,7 +224,7 @@ module.exports = function (grunt) {
             var includeCompiled = [];
             var excludeCompiled = _.union(exclude, [
                 ".DS_Store",
-                "node_modules/*",
+                "/node_modules/*",
                 ".git",
                 ".gitignore",
                 ".nodemonignore",
@@ -233,9 +233,7 @@ module.exports = function (grunt) {
             ]);
             // Add linked modules to the inclusion list
             _.each(includeModules, function (module) {
-                var modulePath = "node_modules/" + module,
-                    modulePathSub = modulePath + "/node_modules/*";
-                includeCompiled.push(modulePath, modulePathSub);
+                includeCompiled.push("/node_modules/" + module);
             });
             // Run rsync between the application and repository
             rsync({
